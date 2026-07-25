@@ -11,7 +11,11 @@ app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
 
 # ✅ NEW LINE (Allows your GitHub website to connect instantly):
 
-CORS(app, resources={r"/*": {"origins": "*"}},supports_credentials=True)
+CORS(app, resources={r"/*": {
+    "origins": "*", 
+    "methods": ["GET", "POST", "OPTIONS"], 
+    "allow_headers": ["Content-Type", "Authorization"]
+}})
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "phishingmodel.pkl")
