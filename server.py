@@ -6,7 +6,7 @@ import joblib
 
 app = Flask(__name__)
 
-# 🔒 MASTER CORS OVERRIDE (Tells Chrome to allow your website to connect instantly)
+# 🔒 MASTER CORS OVERRIDE (Explicitly handles Preflight OPTIONS checks globally)
 CORS(app, resources={r"/*": {
     "origins": "*", 
     "methods": ["GET", "POST", "OPTIONS"], 
@@ -42,7 +42,7 @@ def calculate_entropy(domain: str) -> float:
 
 @app.route('/scan', methods=['POST', 'OPTIONS'])
 def scan_url():
-    # 🛡️ HANDLES THE BROWSER'S HIDDEN SECURITY CHECK BEFORE SENDING DATA
+    # 🛡️ GLOBAL HANDSHAKE FOR BROWSERS
     if request.method == 'OPTIONS':
         response = jsonify({"status": "CORS_OK"})
         response.headers.add("Access-Control-Allow-Origin", "*")
