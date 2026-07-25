@@ -6,16 +6,15 @@ import joblib
 
 app = Flask(__name__)
 
-# 🔒 MAXIMUM CONTENT PACKET LIMITATION (Memory Guard)
-app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024 
-
-# ✅ NEW LINE (Allows your GitHub website to connect instantly):
-
+# 🔒 MASTER CORS OVERRIDE (Tells Chrome to allow your website to connect instantly)
 CORS(app, resources={r"/*": {
     "origins": "*", 
     "methods": ["GET", "POST", "OPTIONS"], 
     "allow_headers": ["Content-Type", "Authorization"]
 }})
+
+# 🔒 MAXIMUM CONTENT PACKET LIMITATION (Set to 5MB so live website headers pass through)
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "phishingmodel.pkl")
@@ -41,8 +40,16 @@ def calculate_entropy(domain: str) -> float:
     entropy = -sum(p * math.log(p, 2) for p in frequencies)
     return entropy
 
-@app.route('/scan', methods=['POST'])
+@app.route('/scan', methods=['POST', 'OPTIONS'])
 def scan_url():
+    # 🛡️ HANDLES THE BROWSER'S HIDDEN SECURITY CHECK BEFORE SENDING DATA
+    if request.method == 'OPTIONS':
+        response = jsonify({"status": "CORS_OK"})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type")
+        return response
+
     if not request.is_json:
         return jsonify({"error": "Content-Type must be application/json"}), 415
 
@@ -66,30 +73,29 @@ def scan_url():
         
     lower_url = target_url.lower()
     
-    # 🩹 CORE FIXED STRING PARSER: Extracts just the domain segment as a clean text string, never a list
     clean_url = lower_url.replace("https://", "").replace("http://", "").replace("www.", "")
-    core_domain = clean_url.split('/')[0] # Grab just the first text piece before any path slash
+    core_domain = clean_url.split('/')[0]
 
-    # -----------------------------------------------------------------
-    # LAYER 1: DATA MATRIX VERIFICATION (Instant Pass / Block)
-    # -----------------------------------------------------------------
+    # LAYER 1: DATA MATRIX VERIFICATION
     if core_domain in WHITELIST_DOMAINS:
-        return jsonify({
+        response = jsonify({
             "score": 0,
             "status": "SAFE",
             "details": ["Verified Trusted Domain (Global Whitelist Pass)"]
         })
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        return response
 
     if core_domain in BLACKLIST_DOMAINS:
-        return jsonify({
+        response = jsonify({
             "score": 100,
             "status": "MALICIOUS PHISHING SITE",
             "details": ["Instant Block: Domain matches signature in global threat database"]
         })
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        return response
 
-    # -----------------------------------------------------------------
     # LAYER 2: ADVANCED STRUCTURAL & MATHEMATICAL SCAN
-    # -----------------------------------------------------------------
     rule_penalty = 0
     reasons_flagged = []
 
@@ -127,18 +133,12 @@ def scan_url():
             reasons_flagged.append(f"Brand Impersonation Alert: Domain structurally mimics a protected trademark ({brand})")
             break
 
-    # -----------------------------------------------------------------
     # LAYER 3: MACHINE LEARNING PATTERN PROBABILITY
-    # -----------------------------------------------------------------
     url_numeric = vectorizer.transform([target_url])
     probabilities = model.predict_proba(url_numeric)
-    
-    # 🩹 ML ARRAY FIXED: Pulls out the 1D probabilistic element from the matrix reliably
     ai_risk_score = int(probabilities[0][1] * 100) 
     
-    # -----------------------------------------------------------------
-    # AGGREGATION ENGINE (Combining Threat Vectors)
-    # -----------------------------------------------------------------
+    # AGGREGATION ENGINE
     final_risk_score = ai_risk_score + rule_penalty
     if final_risk_score > 100:
         final_risk_score = 100
@@ -150,14 +150,14 @@ def scan_url():
     else:
         status = "SAFE"
         
-    return jsonify({
+    response = jsonify({
         "score": final_risk_score,
         "status": status,
         "details": reasons_flagged if reasons_flagged else ["Passed structural checks. Verified by AI pattern match alone."]
     })
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    return response
 
 if __name__ == '__main__':
-    # Cloud environments pass down a dynamic PORT variable. We check for it, or default to 5000.
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=False) # Turn off debug mode for cloud safety
-
+    app.run(host='0.0.0.0', port=port, debug=False)
