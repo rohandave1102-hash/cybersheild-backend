@@ -9,7 +9,9 @@ app = Flask(__name__)
 # 🔒 MAXIMUM CONTENT PACKET LIMITATION (Memory Guard)
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024  
 
-CORS(app)  # Allows your teammate's extension and website to talk to this Python server
+# ✅ NEW LINE (Allows your GitHub website to connect instantly):
+
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "phishingmodel.pkl")
