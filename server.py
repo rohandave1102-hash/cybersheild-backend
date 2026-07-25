@@ -7,11 +7,11 @@ import joblib
 app = Flask(__name__)
 
 # 🔒 MAXIMUM CONTENT PACKET LIMITATION (Memory Guard)
-app.config['MAX_CONTENT_LENGTH'] = 2 * 1024  
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024 
 
 # ✅ NEW LINE (Allows your GitHub website to connect instantly):
 
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources={r"/*": {"origins": "*"}},supports_credentials=True)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "phishingmodel.pkl")
